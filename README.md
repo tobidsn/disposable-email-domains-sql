@@ -59,6 +59,7 @@ class DisposableDomain extends Model
 <?php
 
 namespace App\Http\Controllers\Auth;
+use Illuminate\Support\Str;
 use App\DisposableDomain;
 
 class AuthController extends Controller
@@ -67,9 +68,8 @@ class AuthController extends Controller
     {
       $email = $request->input('email');
 
-      $domain = explode('@', $email);
-      $valid = DisposableDomain::where('domain', $domain[1])
-                                 ->first();
+      $domain = Str::after($email, '@');
+      $valid = DisposableDomain::where('domain', $domain)->first();
       if ($valid) {
           // Email not valid
       } else {
@@ -78,3 +78,77 @@ class AuthController extends Controller
     }
 }
 ```
+
+4. Create Validation rule
+
+```
+php artisan make:rule FakeEmail
+// Rule created successfully.
+```
+
+Final code app/Rules/FakeEmail.php
+
+```
+<?php
+
+namespace App\Rules;
+
+use Illuminate\Contracts\Validation\Rule;
+use Illuminate\Support\Str;
+use App\DisposableDomain;
+
+class FakeEmail implements Rule
+{
+    /**
+     * Create a new rule instance.
+     *
+     * @return void
+     */
+    public function __construct()
+    {
+        //
+    }
+
+    /**
+     * Determine if the validation rule passes.
+     *
+     * @param  string  $attribute
+     * @param  mixed  $value
+     * @return bool
+     */
+    public function passes($attribute, $value)
+    {
+        $email = filter_var($value, FILTER_VALIDATE_EMAIL);
+        if ($email) {
+            $domain = Str::after($email, '@');
+
+            $exist = DisposableDomain::where('domain', $domain)->first();
+            return $exist ? false : true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Get the validation error message.
+     *
+     * @return string
+     */
+    public function message()
+    {
+        return 'The :attribute must be a valid, non-disposable domain';
+    }
+}
+
+```
+
+Example Project
+=============
+[Example Laravel 7 Project with Authentication & Validation Fake Email](https://github.com/tobidsn/laravel-7-with-auth-validation-fake-email)
+
+
+[Rules FakeEmail](https://github.com/tobidsn/laravel-7-with-auth-validation-fake-email/blob/master/app/Rules/FakeEmail.php)
+
+[Controller RegisterController ](https://github.com/tobidsn/laravel-7-with-auth-validation-fake-email/blob/master/app/Http/Controllers/Auth/RegisterController.php)
+
+[Model DisposableDomain ](https://github.com/tobidsn/laravel-7-with-auth-validation-fake-email/blob/master/app/DisposableDomain.php)
